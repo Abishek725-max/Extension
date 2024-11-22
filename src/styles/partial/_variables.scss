@@ -1,0 +1,37 @@
+@import url("https://fonts.googleapis.com/css2?family=Albert+Sans:ital,wght@0,100..900;1,100..900&display=swap");
+
+$albert-sans: "Albert Sans", sans-serif;
+
+$black: #000000;
+$white: #ffffff;
+
+// ==== Standard Bootstrap Breakpoints ====
+
+$screen-sm: 576px;
+$screen-md: 767px;
+$screen-lg: 992px;
+$screen-xl: 1200px;
+$screen-xxl: 1400px;
+
+// ==== Custom Breakpoints ====
+
+$screen-alt-363: 363px;
+$screen-alt-480: 480px;
+$screen-alt-768: 768px;
+$screen-alt-1024: 1024px;
+$screen-alt-1350: 1350px;
+$screen-alt-1500: 1500px;
+$screen-alt-1600: 1600px;
+
+// Theme setting
+:root {
+
+  // ==== background color ====
+  --olw-c-bg-clr-01: linear-gradient(180deg, #F9F9F9 0%, #F9F9F9 100%);
+}
+
+.dark {
+  // ==== background color ====
+  --olw-c-bg-clr-01: linear-gradient(180deg, #161618 0%, #161618 100%);
+}
+

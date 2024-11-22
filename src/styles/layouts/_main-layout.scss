@@ -1,0 +1,44 @@
+.main-layout {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+
+  .main-section {
+    padding: 0rem;
+    width: 100%;
+    min-height: 100%;
+    max-width: calc(100%);
+    display: flex;
+    flex-direction: column;
+    @media screen and (max-width: 991px) {
+      margin-left: 0;
+      max-width: calc(100%);
+    }
+    .main-content-area {
+      height: calc(100vh - 5rem);
+      overflow: auto;
+      @media screen and (max-width: 991px) {
+        padding-bottom: 9rem;
+      }
+    }
+  }
+}
+
+
+.svg-paths.filled-1 path:nth-child(-n+1),
+.svg-paths.filled-2 path:nth-child(-n+2),
+.svg-paths.filled-3 path:nth-child(-n+3),
+.svg-paths.filled-4 path:nth-child(-n+4),
+.svg-paths.filled-5 path:nth-child(-n+5),
+.svg-paths.filled-6 path:nth-child(-n+6),
+.svg-paths.filled-7 path:nth-child(-n+7),
+.svg-paths.filled-8 path:nth-child(-n+8),
+.svg-paths.filled-9 path:nth-child(-n+9),
+.svg-paths.filled-10 path:nth-child(-n+10),
+.svg-paths.filled-11 path:nth-child(-n+11),
+.svg-paths.filled-12 path:nth-child(-n+12),
+.svg-paths.filled-13 path:nth-child(-n+13),
+.svg-paths.filled-14 path:nth-child(-n+14),
+.svg-paths.filled-15 path:nth-child(-n+15) {
+  fill: #356FF5; /* Filled paths color */
+}

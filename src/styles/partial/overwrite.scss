@@ -1,0 +1,91 @@
+// Define your theme variables
+$primary-color-dark: #f03a3a;
+$secondary-color-dark: #252526;
+
+$green-color-dark: #17C964;
+
+.danger-border-gradient-dark::before {
+  content: '';
+  z-index: -1;
+  position: absolute;
+  inset: -0.06rem;
+  background: linear-gradient(140deg, $primary-color-dark -11.71%, $secondary-color-dark 15.44%);
+}
+
+.green-border-gradient-dark::before {
+  content: '';
+  z-index: -1;
+  position: absolute;
+  inset: -0.06rem;
+  background: linear-gradient(140deg, $green-color-dark -11.71%, $secondary-color-dark 15.44%);
+  border-radius: 0.5rem;
+}
+
+.border-gradient-light::before {
+  content: '';
+  position: absolute;
+  inset: -0.06rem;
+  background: #E7E7E9;
+  z-index: -1;
+  border-radius: 0.5rem;
+}
+
+.danger-border-gradient {
+  position: relative;
+  z-index: 1;
+  &::after {
+    position: absolute;
+    content: "";
+    inset: 0;
+    background: #E7E7E9;
+    z-index: -1;
+    border-radius: 0.5rem;
+  }
+  @extend .border-gradient-light;
+}
+
+.dark {
+  .danger-border-gradient {
+    position: relative;
+    z-index: 1;
+    &::after {
+      position: absolute;
+      content: "";
+      inset: 0;
+      background: linear-gradient(180deg, #161618 0%, #161618 100%);
+      z-index: -1;
+      border-radius: 0.5rem;
+    }
+    @extend .danger-border-gradient-dark;
+  }
+}
+
+.green-border-gradient {
+  position: relative;
+  z-index: 1;
+  &::after {
+    position: absolute;
+    content: "";
+    inset: 0;
+    background: #E7E7E9;
+    z-index: -1;
+    border-radius: 0.5rem;
+  }
+  @extend .border-gradient-light;
+}
+
+.dark {
+  .green-border-gradient {
+    position: relative;
+    z-index: 1;
+    &::after {
+      position: absolute;
+      content: "";
+      inset: 0;
+      background: linear-gradient(180deg, #161618 0%, #161618 100%);
+      z-index: -1;
+      border-radius: 0.5rem;
+    }
+    @extend .green-border-gradient-dark;
+  }
+}

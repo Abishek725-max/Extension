@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Next.js Page</title>
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self';
+    script-src 'self' https://cdn.skypack.dev;
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data:;
+  frame-src 'self' http://localhost:3000;"
+    />
+    <style>
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      /* Style for the button */
+      #registerButton {
+        display: block; /* Ensures the button is a block element */
+        margin: 10px auto; /* Centers the button horizontally */
+        padding: 10px 20px; /* Adds some padding to the button */
+        background-color: #4caf50; /* Green background */
+        color: white; /* White text */
+        border: none; /* No border */
+        border-radius: 5px; /* Rounded corners */
+        cursor: pointer; /* Pointer cursor on hover */
+        font-size: 16px; /* Larger font size */
+      }
+
+      /* Add hover effect for the button */
+      #registerButton:hover {
+        background-color: #45a049; /* Darker green on hover */
+      }
+
+      #messages {
+        margin: 10px; /* Adds margin to the message container */
+        padding: 5px; /* Adds padding to the message container */
+        background-color: #f9f9f9; /* Light background for contrast */
+        border: 1px solid #ccc; /* Border for the message container */
+        border-radius: 5px; /* Rounded corners */
+        max-height: 200px; /* Limit height */
+        overflow-y: auto; /* Scroll if overflow */
+      }
+
+      iframe {
+        width: 360px;
+        height: 100%;
+        border: none;
+      }
+    </style>
+
+    <script type="module" src="background.js"></script>
+  </head>
+  <body>
+    <!-- Button to trigger WebSocket registration -->
+    <!-- <button id="registerButton">Register WebSocket</button> -->
+
+    <!-- Container to display incoming WebSocket messages -->
+    <!-- <div id="messages"></div> -->
+
+    <!-- Load a specific page from your Next.js app -->
+    <iframe src="http://localhost:3000/home" frameborder="0"></iframe>
+  </body>
+</html>

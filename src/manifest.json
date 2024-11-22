@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "My Chrome Extension",
+  "version": "1.0",
+  "background": {
+    "service_worker": "background.bundle.js"
+  },
+  "content_security_policy": {
+    "script-src": "'self';",
+    "object-src": "'self';",
+    "frame-src": "'self' http://localhost:3000;"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "permissions": [
+    "activeTab",
+    "sockets",
+    "webRequest",
+    "storage",
+    "http://localhost:3000/*",
+    "https://minio.openledger.dev/*",
+    "tabs",
+    "webNavigation"
+  ],
+  "host_permissions": [
+    "http://*/*",
+    "https://*/*",
+    "http://localhost:3000/*",
+    "ws://192.168.18.103:9999/*"
+  ],
+  "optional_permissions": ["tabs"]
+}
