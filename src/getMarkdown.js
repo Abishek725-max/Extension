@@ -1,31 +1,42 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { Buffer } from "buffer";
-import { v4 as uuidv4 } from "uuid";
-
 import { ethers } from "ethers";
 
 import { uploadMinio } from "./uploadMinio.js";
 
-const getMarkdown = async (
-  value,
-  privateKey = "5f9b0c9ee1eba7149d5855dbfb9d51b489e652f8a4bc2bd66b1ee31244457e11"
-) => {
-  chrome.storage.local.set({ markdownPrivateKey: privateKey }, () => {
-    console.log("Private key stored in Chrome storage.");
+function getLocalStorage(key) {
+  return new Promise((resolve, reject) => {
+    chrome.storage.local
+      .get([key])
+      .then((data) => {
+        resolve(parseValue(data[key]));
+        console.log("Data get successfully! in chrome storage");
+      })
+      .catch(reject);
   });
+}
 
-  if (typeof window !== "undefined") {
-    localStorage.setItem("markdownPrivateKey", privateKey);
-  } else {
-    console.log("Local storage is not available in this environment.");
+const parseValue = (value) => {
+  try {
+    return JSON.parse(value);
+  } catch (e) {
+    return value;
   }
-  console.log("jobData", value?.data);
+};
+
+const getMarkdown = async (value) => {
+  // console.log("jobData", value?.data);
   const JobData = value?.data;
 
-  console.log("🚀 ~ getMarkdown ~ JobData:", JobData);
+  console.log("jobData", getLocalStorage("privateKey"));
 
   // Ensure the Dataset is valid before parsing
   let parsedData;
+
+  const privateKey =
+    "5f9b0c9ee1eba7149d5855dbfb9d51b489e652f8a4bc2bd66b1ee31244457e11";
+  // if (!privateKey) {
+  //   console.error("Private key is required.");
+  //   return;
+  // }
 
   if (JobData?.Dataset) {
     try {
@@ -72,7 +83,7 @@ const getMarkdown = async (
     console.log("response2", urls[i]);
     try {
       const response = await fetch(
-        `http://localhost:8100/api/hello?url=${urls[i]}`
+        `http://localhost:3000/api/hello?url=${urls[i]}`
       );
       console.log("response", response);
 

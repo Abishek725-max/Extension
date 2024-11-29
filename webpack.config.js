@@ -3,55 +3,47 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 
+// webpack.config.js
 module.exports = {
+  mode: "development",
   entry: {
-    background: "./src/background.js", // Entry point for background script
-    popup: "./src/popup.js", // Entry point for popup script
+    background: "./src/background.js",
+    content: "./src/content.js",
   },
   output: {
-    path: path.resolve(__dirname, "dist"), // Output folder
-    filename: "[name].bundle.js", // Output filename (e.g., background.bundle.js)
+    path: path.resolve(__dirname, "dist"),
+    filename: "[name].bundle.js",
   },
-  module: {
-    rules: [
-      {
-        test: /\.js$/,
-        exclude: /node_modules/,
-        use: {
-          loader: "babel-loader", // Transpile JS using Babel
-          options: {
-            presets: ["@babel/preset-env"],
-          },
-        },
-      },
-      {
-        test: /\.css$/, // Load CSS files
-        use: ["style-loader", "css-loader"],
-      },
-      {
-        test: /\.(png|jpe?g|gif)$/i, // Load image files (e.g., icons)
-        type: "asset/resource",
-        generator: {
-          filename: "icons/[name][ext][query]", // Save images in 'icons' folder in dist/
-        },
-      },
-    ],
-  },
+
+  // module: {
+  //   rules: [
+  //     {
+  //       test: /\.js$/,
+  //       exclude: /node_modules/,
+  //       use: "babel-loader",
+  //     },
+  //   ],
+  // },
   plugins: [
-    new CleanWebpackPlugin(), // Clean dist/ folder before build
-    new HtmlWebpackPlugin({
-      template: "./src/popup.html", // Use source popup.html template
-      filename: "popup.html", // Output as popup.html in dist/
-    }),
     new CopyWebpackPlugin({
       patterns: [
-        { from: "./src/manifest.json", to: "manifest.json" }, // Copy manifest
+        { from: "./src/manifest.json", to: "manifest.json" },
+        { from: "./src/popup.html", to: "popup.html" }, // Adjust paths if needed
       ],
     }),
   ],
-  resolve: {
-    extensions: [".js", ".json"], // Resolve JavaScript and JSON files
-  },
-  devtool: "source-map", // Optional: Enable source maps for easier debugging
-  mode: "production", // Change to 'development' for dev builds
+  // node: {
+  //   __dirname: true, // Optionally polyfill __dirname
+  //   __filename: true, // Optionally polyfill __filename
+  //   global: true, // Optionally polyfill global object
+  // },
+  // experiments: {
+  //   outputModule: true, // Enable ES modules for Service Worker
+  // },
+  // externals: {
+  //   chrome: "chrome", // Mark 'chrome' as an external dependency
+  // },
+
+  target: "web", // Ensures compatibility with Chrome extensions
+  devtool: "source-map",
 };

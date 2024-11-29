@@ -1,4 +1,62 @@
-import appAxios from "./axios-utils";
+import baseAxios from "./axios-utils";
+// console.log('🚀 ~ baseAxios:', baseAxios);
 
-export const createDataSets = (data) => appAxios.post("/datasets/create", data);
-export const dataSetsList = () => appAxios.get("/datasets");
+export const generateToken = async (address) => {
+  try {
+    const response = await baseAxios.post(
+      "/auth/generate_token",
+      {
+        address: address,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error generating token:", error);
+  }
+};
+
+export const claimReward = async () => {
+  try {
+    const response = await baseAxios.put("/users/reward_permit");
+    console.log("🚀 ~ claimReward ~ response:", response);
+
+    return response.data;
+  } catch (error) {
+    console.error("Error claiming reward:", error);
+    throw error;
+  }
+};
+
+export const getRewardsHistory = async () => {
+  try {
+    const response = await baseAxios.get("/users/reward_history");
+    return response.data;
+  } catch (error) {
+    console.error("Error reward_history:", error);
+  }
+};
+
+export const getRewardsRealTime = async () => {
+  try {
+    const response = await baseAxios.get("/users/reward_realtime");
+
+    return response.data;
+  } catch (error) {
+    console.error("Error reward_realtime:", error);
+  }
+};
+
+export const getRewardsTotal = async () => {
+  try {
+    const response = await baseAxios.get("/users/reward");
+
+    return response.data;
+  } catch (error) {
+    console.error("Error reward Total:", error);
+  }
+};

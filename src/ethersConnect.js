@@ -1,4 +1,5 @@
 import { ethers } from "ethers";
+import { registerWebSocket } from "./background";
 
 export const ethersConnect = async (
   jobData,
@@ -6,7 +7,6 @@ export const ethersConnect = async (
   checksumCreateTime,
   privateKey
 ) => {
-  console.log("🚀 ~ privateKey:", privateKey);
   console.log("🚀 ~ checksumCreateTime:", checksumCreateTime);
   console.log("🚀 ~ ethersConnect ~ checksum:", checksum);
 
@@ -117,7 +117,14 @@ export const ethersConnect = async (
     };
 
     console.log(jobWithSign);
-    wsClient.sendMessage(jobWithSign);
+
+    // registerWebSocket(
+    //   JSON?.stringify({
+    //     workerID: "Extension_ID",
+    //     msgType: "JOB_COMPLETION",
+    //     message: jobWithSign,
+    //   })
+    // );
     return jobWithSign;
   } catch (error) {
     console.error("Error in ethersConnect:", error);

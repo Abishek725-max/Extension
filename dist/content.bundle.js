@@ -1,3 +1,7 @@
+/******/ (() => { // webpackBootstrap
+/*!************************!*\
+  !*** ./src/content.js ***!
+  \************************/
 const value = "privatekeyVAlueesetup";
 
 console.log("Content script loaded");
@@ -24,3 +28,7 @@ window.addEventListener("message", (event) => {
 //     });
 //   }
 // });
+
+/******/ })()
+;
+//# sourceMappingURL=content.bundle.js.map

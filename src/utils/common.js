@@ -38,3 +38,84 @@ export const getPrivateKey = () => {
   let privatekey = localStorage?.getItem("privateKey");
   return privatekey;
 };
+
+export const validatePrivateKey = (key) => {
+  const regex = /^[a-fA-F0-9]{64}$/;
+  if (key.startsWith("0x")) {
+    key = key.replace(/0x/, "");
+  }
+  return regex.test(key);
+};
+
+export const sortJobsByDate = (jobs = []) => {
+  return jobs.sort((a, b) => {
+    const dateA = new Date(
+      typeof a.Dataset === "string"
+        ? JSON.parse(a.Dataset).createdAt
+        : a.Dataset?.createdAt
+    );
+    const dateB = new Date(
+      typeof b.Dataset === "string"
+        ? JSON.parse(b.Dataset).createdAt
+        : b.Dataset?.createdAt
+    );
+    return dateB - dateA;
+  });
+};
+
+// Wallet address Truncate
+export const truncateAddress = (address, maxLength) => {
+  if (!address) return "";
+  if (address.length <= maxLength) {
+    return address;
+  }
+  const startLength = Math.ceil((maxLength - 10) / 2);
+  const endLength = Math.floor((maxLength - 9) / 2);
+  return (
+    address.substr(0, startLength) +
+    " ... " +
+    address.substr(address.length - endLength)
+  );
+};
+
+// Function to calculate the percentage
+export const calculatePercentage = (value, total, chartHeight) =>
+  (value / total) * (chartHeight - 1);
+
+// Step 1: Find the maximum total value
+export const maxTotal = (rewardsHistoryData) => {
+  return Math.max(...rewardsHistoryData.map((point) => point.points));
+};
+
+// Step 2: Calculate rem values based on the ratio to the maximum total
+export const epochPointsWithHeight = (rewardsHistoryData, maxTotalPoint) => {
+  const newData = rewardsHistoryData.map((point) => {
+    const chartHeight = (point.points / maxTotalPoint) * 10;
+
+    return {
+      ...point,
+      chartHeight, // Add the calculated rem value to the object
+    };
+  });
+  return newData;
+};
+
+// Step 1: Find the most recent entry by comparing dates
+export const latestEntry = (rewardsHistoryData) => {
+  if (rewardsHistoryData.length === 0) return null; // Return null if data is empty
+  return rewardsHistoryData.reduce((latest, current) => {
+    return new Date(current.created) > new Date(latest.created)
+      ? current
+      : latest;
+  });
+};
+
+export const formatNumber = (num) => {
+  if (num >= 1_000_000) {
+    return (num / 1_000_000).toFixed(1) + "M";
+  } else if (num >= 1_000) {
+    return (num / 1_000).toFixed(1) + "K";
+  } else {
+    return num.toString();
+  }
+};

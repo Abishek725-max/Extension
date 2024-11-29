@@ -16,7 +16,7 @@ const ChromeExtentionHeader = () => {
           <div className="flex items-center gap-3">
             <div
               className="settings cursor-pointer"
-              onClick={() => router?.push("/jobs")}
+              onClick={() => router?.push("/home")}
             >
               <svg
                 width="24"

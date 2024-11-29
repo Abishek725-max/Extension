@@ -41,7 +41,7 @@
             &::before {
               content: "";
             }
-            &.networkpoint-box {
+            &.heartbestpoint-box {
               background: linear-gradient(
                 346.25deg,
                 #fc947d 2.56%,
@@ -111,7 +111,7 @@
             }
           }
 
-          &.networkpoint-box {
+          &.heartbestpoint-box {
             background: linear-gradient(
               346.25deg,
               #e7e7e9 2.56%,
@@ -213,7 +213,7 @@
       li {
         display: flex;
         justify-content: space-between;
-        width: 6rem;
+        width: 6.5rem;
         gap: 0.5rem;
       }
     }
@@ -229,7 +229,7 @@
             &::before {
               content: "";
             }
-            &.networkpoint-box {
+            &.heartbestpoint-box {
               background: linear-gradient(
                 346.25deg,
                 #2c2c30 2.56%,
@@ -284,7 +284,7 @@
               &::before {
                 content: "";
               }
-              &.networkpoint-box {
+              &.heartbestpoint-box {
                 background: linear-gradient(
                   346.25deg,
                   #fc947d 2.56%,

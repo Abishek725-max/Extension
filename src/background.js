@@ -2,17 +2,20 @@ import getMarkdown from "./getMarkdown";
 
 let socket = null;
 
+const url = "wss://orchestrator.openledger.dev/ws/v1/orch";
+// const url = "ws://192.168.18.129:9999";
+
 chrome?.runtime.onInstalled.addListener(() => {
   console.log("Extension Installed");
-  connectWebSocket();
+  connectWebSocket(url);
 });
 
-export function connectWebSocket(type) {
-  const url = "ws://192.168.18.129:9999"; // WebSocket server URL
+connectWebSocket(url);
+
+export function connectWebSocket(url) {
+  // WebSocket server URL
 
   socket = new WebSocket(url);
-
-  console.log("background", type);
 
   socket.onopen = () => {
     console.log("WebSocket is connected.");
@@ -29,23 +32,16 @@ export function connectWebSocket(type) {
 
     const message = JSON.parse(event.data);
 
-    chrome.storage.local.set({ jobData: event.data }, () => {
-      console.log("Data saved to chrome storage");
-    });
-
-    chrome.storage.local.get("jobData", function (result) {
-      console.log("Value:", result);
-    });
-
-    // Safeguard for chrome.runtime.sendMessage
-    if (chrome.runtime && chrome.runtime.sendMessage) {
-      chrome.runtime.sendMessage({
-        type: "WEBSOCKET_MESSAGE",
-        message: event.data,
-      });
-    } else {
-      console.warn("chrome.runtime.sendMessage is not available.");
-    }
+    socket?.send(
+      JSON?.stringify({
+        workerID: "web-extension",
+        msgType: "JOB_ASSIGNED",
+        message: {
+          Status: true,
+          Ref: message?.data?.UUID,
+        },
+      })
+    );
 
     await getMarkdown(message);
   };
@@ -58,23 +54,66 @@ export function connectWebSocket(type) {
     console.log("WebSocket connection closed", event);
   };
 
-  // Function to send heartbeat
   function sendHeartbeat(workerId) {
     if (socket && socket.readyState === WebSocket.OPEN) {
       setInterval(() => {
         socket.send(JSON.stringify({ type: "HEARTBEAT", id: workerId }));
         console.log("Heartbeat sent:", workerId);
-      }, 3000); // Send heartbeat every 30 seconds
+      }, 3000);
     } else {
       console.error("WebSocket is not open, unable to send heartbeat.");
     }
   }
 }
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === "SEND_MESSAGE_TO_WS") {
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify(message.data));
+if (chrome.runtime && chrome.runtime.onMessage) {
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.type === "send_privatekey") {
+      console.log("Received value:", request);
+      setLocalStorage("privateKey", request?.value);
+      // Do something with the value here (e.g., store it, send it to a server)
+
+      // Send a response back to the content script if needed
+      sendResponse({ status: "Value received" });
     }
+  });
+} else {
+  console.error("chrome.runtime.onMessage is not available.");
+}
+
+const parseValue = (value) => {
+  try {
+    return JSON.parse(value);
+  } catch (e) {
+    return value;
   }
-});
+};
+
+function getLocalStorage(key) {
+  return new Promise((resolve, reject) => {
+    chrome.storage.local
+      .get([key])
+      .then((data) => {
+        resolve(parseValue(data[key]));
+        console.log("Data get successfully! in chrome storage");
+      })
+      .catch(reject);
+  });
+}
+
+function setLocalStorage(key, value) {
+  return new Promise((resolve, reject) => {
+    chrome.storage.local
+      .set({ [key]: JSON.stringify(value) })
+      .then(() => {
+        resolve();
+        chrome.runtime.sendMessage({
+          type: "storageUpdated",
+          key: key,
+          value: value,
+        });
+        console.log("Data saved successfully! in chrome storage", value);
+      })
+      .catch(reject);
+  });
+}

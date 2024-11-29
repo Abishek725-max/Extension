@@ -86,20 +86,30 @@ const epochPoints = [
 export const calculatePercentage = (value, total) => (value / total) * 10;
 
 // Step 1: Find the maximum total value
-export const maxTotal = Math.max(...epochPoints.map((point) => point.total));
+export const maxTotal = (data) => {
+  return Math.max(...data.map((point) => point?.agg_points))
+};
 
 // Step 2: Calculate rem values based on the ratio to the maximum total
-export const epochPointsWithHeight = epochPoints.map((point) => {
-  const chartHeight = (point.total / maxTotal) * 10;
-  return {
-    ...point,
-    chartHeight: `${chartHeight}rem`, // Add the calculated rem value to the object
-  };
-});
+export const epochPointsWithHeight = (data, maximumTotal) => {
+  const newData = data.map((point) => {
+    const chartHeight = (point.agg_points / maximumTotal) * 10;
+    return {
+      ...point,
+      chartHeight: `${chartHeight}rem`, // Add the calculated rem value to the object
+    };
+  })
+  return newData;
+};
 
 // Step 1: Find the most recent entry by comparing dates
-export const latestEntry = epochPoints.reduce((latest, current) => {
-  return new Date(current.created) > new Date(latest.created)
-    ? current
-    : latest;
-});
+export const latestEntry = (data) => {
+  if (data.length === 0) return null; // Return null if data is empty
+
+  return data.reduce((latest, current) => {
+    return new Date(current?.date) > new Date(latest?.date)
+      ? current
+      : latest;
+  });
+};
+
