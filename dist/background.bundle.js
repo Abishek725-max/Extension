@@ -55409,6 +55409,650 @@ const toUtf8 = (input) => {
 
 /***/ }),
 
+/***/ "./src/background.js":
+/*!***************************!*\
+  !*** ./src/background.js ***!
+  \***************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   connectWebSocket: () => (/* binding */ connectWebSocket)
+/* harmony export */ });
+/* harmony import */ var _getMarkdown__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./getMarkdown */ "./src/getMarkdown.js");
+
+let socket = null;
+
+// const url = "wss://orchestrator.openledger.dev/ws/v1/orch";
+const url = "ws://192.168.18.129:9999";
+chrome?.runtime.onInstalled.addListener(() => {
+  console.log("Extension Installed");
+  connectWebSocket(url);
+});
+
+// chrome.storage.local.clear(() => {
+//   if (chrome.runtime.lastError) {
+//     console.error("Error clearing local storage:", chrome.runtime.lastError);
+//   } else {
+//     console.log("Local storage cleared.");
+//   }
+// });
+
+connectWebSocket(url);
+function connectWebSocket(url) {
+  // WebSocket server URL
+
+  socket = new WebSocket(url);
+  socket.onopen = () => {
+    console.log("WebSocket is connected.");
+    socket.send(JSON.stringify({
+      action: "connect",
+      data: "Client connected"
+    }));
+
+    // Start sending heartbeat after WebSocket is connected
+    sendHeartbeat("Bossssss aee pls");
+  };
+  socket.onmessage = async event => {
+    console.log("Message received from WebSocket:", event.data);
+    const message = JSON.parse(event.data);
+    setTimeout(() => chrome.runtime.sendMessage({
+      type: "send_jobdata",
+      data: message
+    }, response => {
+      console.log("Response from content script:", response);
+    }), 5000);
+
+    // setLocalStorage("allJobData", JSON.stringify(message?.data));
+
+    socket?.send(JSON?.stringify({
+      workerID: "web-extension",
+      msgType: "JOB_ASSIGNED",
+      message: {
+        Status: true,
+        Ref: message?.data?.UUID
+      }
+    }));
+    let privateKey = await getLocalStorage("privateKey");
+    console.log("🚀 ~ socket.onmessage= ~ privateKey:", privateKey);
+    if (privateKey) {
+      await (0,_getMarkdown__WEBPACK_IMPORTED_MODULE_0__["default"])(message, privateKey);
+    }
+  };
+  socket.onerror = error => {
+    console.error("WebSocket error:", error);
+  };
+  socket.onclose = event => {
+    console.log("WebSocket connection closed", event);
+  };
+  function sendHeartbeat(workerId) {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      setInterval(() => {
+        socket.send(JSON.stringify({
+          type: "HEARTBEAT",
+          id: workerId
+        }));
+        console.log("Heartbeat sent:", workerId);
+      }, 3000);
+    } else {
+      console.error("WebSocket is not open, unable to send heartbeat.");
+    }
+  }
+}
+if (chrome.runtime && chrome.runtime.onMessage) {
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.type === "send_privatekey") {
+      console.log("Received value:", request);
+      setLocalStorage("privateKey", request?.value);
+      // Do something with the value here (e.g., store it, send it to a server)
+
+      // Send a response back to the content script if needed
+      sendResponse({
+        status: "Value received"
+      });
+    }
+  });
+} else {
+  console.error("chrome.runtime.onMessage is not available.");
+}
+const parseValue = value => {
+  try {
+    return JSON.parse(value);
+  } catch (e) {
+    return value;
+  }
+};
+function getLocalStorage(key) {
+  return new Promise((resolve, reject) => {
+    chrome.storage.local.get([key]).then(data => {
+      resolve(parseValue(data[key]));
+      console.log("Data get successfully! in chrome storage");
+    }).catch(reject);
+  });
+}
+function setLocalStorage(key, value) {
+  return new Promise((resolve, reject) => {
+    chrome.storage.local.set({
+      [key]: JSON.stringify(value)
+    }).then(() => {
+      resolve();
+      chrome.runtime.sendMessage({
+        type: "storageUpdated",
+        key: key,
+        value: value
+      });
+      console.log("Data saved successfully! in chrome storage", value);
+    }).catch(reject);
+  });
+}
+
+/***/ }),
+
+/***/ "./src/ethersConnect.js":
+/*!******************************!*\
+  !*** ./src/ethersConnect.js ***!
+  \******************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   ethersConnect: () => (/* binding */ ethersConnect)
+/* harmony export */ });
+/* harmony import */ var ethers__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ethers */ "./node_modules/ethers/lib.esm/ethers.js");
+/* harmony import */ var ethers__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ethers */ "./node_modules/ethers/lib.esm/utils.js");
+/* harmony import */ var ethers__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ethers */ "./node_modules/@ethersproject/wallet/lib.esm/index.js");
+/* harmony import */ var ethers__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ethers */ "./node_modules/@ethersproject/solidity/lib.esm/index.js");
+/* harmony import */ var ethers__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ethers */ "./node_modules/@ethersproject/bytes/lib.esm/index.js");
+/* harmony import */ var _background__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./background */ "./src/background.js");
+
+
+const ethersConnect = async (jobData, checksum, checksumCreateTime, privateKey) => {
+  console.log("uploadMInio Pgae", privateKey);
+
+  // Ensure ethers is imported and available
+  if (!ethers__WEBPACK_IMPORTED_MODULE_1__ || !ethers__WEBPACK_IMPORTED_MODULE_2__) {
+    console.error("ethers.utils is undefined. Make sure ethers is imported correctly.");
+    return;
+  }
+  const wallet = new ethers__WEBPACK_IMPORTED_MODULE_3__.Wallet(privateKey);
+  console.log("🚀 ~ ethersConnect ~ wallet:", wallet);
+  let dataset = typeof jobData.Dataset === "string" ? JSON.parse(jobData.Dataset) : jobData.Dataset;
+  let worker = wallet?.address;
+  let dataNetAddress = dataset.contractAddress;
+  let dataNetReference = dataset.name;
+  let dataNetRequestAt = 1344537000;
+  let JobReference = jobData.ID;
+  let storageReference = `${wallet?.address}/${jobData.Type}`;
+  let storageChecksum = checksum;
+  let storagedAt = checksumCreateTime;
+  let signedDataArray = [];
+
+  // Check each parameter type to ensure everything is correct
+  console.log("🚀 ~ ethersConnect ~ params before hashing:", {
+    worker,
+    dataNetAddress,
+    dataNetReference,
+    dataNetRequestAt,
+    JobReference,
+    storageReference,
+    storageChecksum,
+    storagedAt
+  });
+  let params = [worker, dataNetAddress, dataNetReference, dataNetRequestAt, JobReference, storageReference, storageChecksum, storagedAt];
+
+  // Validate the types and values of params
+  params.forEach((param, index) => {
+    console.log(`Type of param[${index}]:`, typeof param, "Value:", param);
+  });
+  try {
+    // Check if `solidityKeccak256` is available before calling
+    if (!ethers__WEBPACK_IMPORTED_MODULE_4__.keccak256) {
+      console.error("solidityKeccak256 method is unavailable.");
+      return;
+    }
+
+    // Call `solidityKeccak256` with the correct types
+    let hash = ethers__WEBPACK_IMPORTED_MODULE_4__.keccak256(["string",
+    // worker
+    "string",
+    // dataNetAddress
+    "string",
+    // dataNetReference
+    "uint256",
+    // dataNetRequestAt (string format)
+    "string",
+    // JobReference
+    "string",
+    // storageReference
+    "string",
+    // storageChecksum
+    "uint256" // storagedAt
+    ], params);
+    console.log("🚀 ~ ethersConnect ~ hash:", hash);
+
+    // Handle null or invalid hash
+    if (!hash) {
+      console.error("Error: Hash calculation resulted in null.");
+      return;
+    }
+
+    // Sign the message with the wallet's private key
+    let signature = await wallet.signMessage(ethers__WEBPACK_IMPORTED_MODULE_5__.arrayify(hash));
+    console.log("🚀 ~ ethersConnect ~ signature:", signature);
+    const jobWithSign = {
+      ref: JobReference,
+      status: true,
+      message: "",
+      completed_at: storagedAt,
+      output: "",
+      job_details: {
+        worker,
+        dataNetAddress,
+        dataNetReference,
+        dataNetRequestAt,
+        JobReference,
+        storageReference,
+        storageChecksum,
+        storagedAt
+      },
+      signature
+    };
+    console.log(jobWithSign);
+
+    // registerWebSocket(
+    //   JSON?.stringify({
+    //     workerID: "Extension_ID",
+    //     msgType: "JOB_COMPLETION",
+    //     message: jobWithSign,
+    //   })
+    // );
+
+    signedDataArray.push({
+      completed_at: jobWithSign.completed_at,
+      job_details: JSON.stringify(jobWithSign.job_details),
+      message: jobWithSign.message,
+      output: jobWithSign.output,
+      ref: jobWithSign.ref,
+      signature: jobWithSign.signature,
+      status: jobWithSign.status
+    });
+    if (signedDataArray.length > 0) {
+      const wsService = new WebSocket("ws://192.168.83.182:9999");
+      wsService.onopen = () => {
+        wsService.send(JSON.stringify({
+          workerID: "Extension",
+          msgType: "JOB_COMPLETION",
+          MultipleJobDetails: signedDataArray
+        }));
+      };
+    } else {
+      console.warn("No valid data to send.");
+    }
+    return jobWithSign;
+  } catch (error) {
+    console.error("Error in ethersConnect:", error);
+    return null;
+  }
+};
+
+/***/ }),
+
+/***/ "./src/getMarkdown.js":
+/*!****************************!*\
+  !*** ./src/getMarkdown.js ***!
+  \****************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var ethers__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ethers */ "./node_modules/@ethersproject/wallet/lib.esm/index.js");
+/* harmony import */ var _uploadMinio_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./uploadMinio.js */ "./src/uploadMinio.js");
+
+
+function getLocalStorage(key) {
+  return new Promise((resolve, reject) => {
+    chrome.storage.local.get([key]).then(data => {
+      resolve(parseValue(data[key]));
+      console.log("Data get successfully! in chrome storage");
+    }).catch(reject);
+  });
+}
+const parseValue = value => {
+  try {
+    return JSON.parse(value);
+  } catch (e) {
+    return value;
+  }
+};
+const getMarkdown = async (value, privateKey) => {
+  // console.log("jobData", value?.data);
+  const JobData = value?.data;
+
+  // Ensure the Dataset is valid before parsing
+  let parsedData;
+
+  // const privateKey =
+  //   "5f9b0c9ee1eba7149d5855dbfb9d51b489e652f8a4bc2bd66b1ee31244457e11";
+  // if (!privateKey) {
+  //   console.error("Private key is required.");
+  //   return;
+  // }
+
+  if (JobData?.Dataset) {
+    try {
+      // Try to parse the Dataset if it exists
+      parsedData = JSON.parse(JobData?.Dataset);
+
+      // Optionally log the parsed data for debugging
+      console.log("Parsed Dataset:", parsedData);
+    } catch (err) {
+      console.error("Error parsing Dataset:", err);
+      console.error("Invalid Dataset data:", JobData.Dataset);
+      return; // Exit the function if Dataset is invalid
+    }
+  } else {
+    console.log("Dataset is missing or invalid.");
+  }
+  const bucketName = parsedData?.name;
+  if (!bucketName) {
+    console.error("No bucket name found in parsed dataset.");
+    return;
+  }
+
+  // Ensure the Payload is valid before parsing
+  let payload;
+  try {
+    payload = JobData?.Payload ? JSON.parse(JobData?.Payload) : null;
+  } catch (err) {
+    console.error("Error parsing Payload:", err);
+    return; // Exit the function if Payload is invalid
+  }
+  const urls = payload?.urls || [];
+  if (urls.length === 0) {
+    console.error("No URLs found in Payload.");
+    return;
+  }
+  const wallet = new ethers__WEBPACK_IMPORTED_MODULE_1__.Wallet(privateKey); // Using dynamic private key
+  console.log("🚀 ~ fetchData ~ wallet:", wallet);
+
+  // Loop through URLs and fetch data
+  for (let i = 0; i < urls.length; i++) {
+    console.log("response2", urls[i]);
+    try {
+      const response = await fetch(`http://localhost:3000/api/hello?url=${urls[i]}`);
+      console.log("response", response);
+      if (response.ok) {
+        const data = await response.json();
+        console.log("🚀 ~ fetchData ~ data:", data?.data?.markdown);
+        const markdownData = JSON.stringify(data?.data?.markdown, null, 2);
+        console.log("🚀 ~ fetchData ~ markdownData:", markdownData);
+        const sequenceNumber = (i + 1).toString().padStart(4, "0");
+        // const objectKey = `${wallet?.address}/${JobData?.Type}/${JobData?.UUID}/${sequenceNumber}.md`;
+        const objectKey = `${wallet.address}/${JobData.Type}/${JobData.UUID}_${sequenceNumber}.md`;
+
+        // Assuming uploadToMinIO is defined elsewhere
+        await (0,_uploadMinio_js__WEBPACK_IMPORTED_MODULE_0__.uploadMinio)(bucketName, objectKey, markdownData, JobData, privateKey);
+      } else {
+        console.error("Failed to fetch data for URL:", urls[i]);
+      }
+    } catch (err) {
+      console.error("Error fetching or uploading data:", err);
+    }
+  }
+};
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (getMarkdown);
+
+/***/ }),
+
+/***/ "./src/uploadMinio.js":
+/*!****************************!*\
+  !*** ./src/uploadMinio.js ***!
+  \****************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   storeJobData: () => (/* binding */ storeJobData),
+/* harmony export */   uploadMinio: () => (/* binding */ uploadMinio)
+/* harmony export */ });
+/* harmony import */ var _aws_sdk_client_s3__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! @aws-sdk/client-s3 */ "./node_modules/@aws-sdk/client-s3/dist-es/S3Client.js");
+/* harmony import */ var _aws_sdk_client_s3__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! @aws-sdk/client-s3 */ "./node_modules/@aws-sdk/client-s3/dist-es/commands/PutObjectCommand.js");
+/* harmony import */ var buffer__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! buffer */ "./node_modules/buffer/index.js");
+/* harmony import */ var crypto_js_sha256__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! crypto-js/sha256 */ "./node_modules/crypto-js/sha256.js");
+/* harmony import */ var crypto_js_sha256__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(crypto_js_sha256__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var _ethersConnect__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./ethersConnect */ "./src/ethersConnect.js");
+/* harmony import */ var _utils_common__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./utils/common */ "./src/utils/common.js");
+
+
+
+
+
+const uploadMinio = async (bucketName, objectKey, data, jobData, privateKey, contentType = "text/markdown") => {
+  console.log("uploadMInio Pgae", privateKey);
+  const s3Client = new _aws_sdk_client_s3__WEBPACK_IMPORTED_MODULE_4__.S3Client({
+    endpoint: "https://minioapi.openledger.dev",
+    region: "us-east-1",
+    credentials: {
+      accessKeyId: "FWF2K7x5zHGDHRRXvRkX",
+      secretAccessKey: "SD39rzABNmiLlHH6CoLBXv3H836JQyFPKhnz0vqB"
+    },
+    forcePathStyle: true,
+    tls: true,
+    maxAttempts: 3,
+    requestHandlerOptions: {
+      timeout: 30000
+    }
+  });
+  const bodyBuffer = buffer__WEBPACK_IMPORTED_MODULE_0__.Buffer.from(data, "utf-8");
+  const checksum = crypto_js_sha256__WEBPACK_IMPORTED_MODULE_1___default()(bodyBuffer).toString();
+  const checksumCreateTime = new Date().getTime();
+  const params = {
+    Bucket: bucketName,
+    Key: objectKey,
+    Body: bodyBuffer,
+    ContentType: contentType
+  };
+  console.log("🚀 ~ params:", params);
+  try {
+    const commend = new _aws_sdk_client_s3__WEBPACK_IMPORTED_MODULE_5__.PutObjectCommand(params);
+    const response = await s3Client.send(commend);
+    console.log("Successfully uploaded to MinIO:", response);
+    console.log("🚀 ~ checksum:", checksum);
+    storeJobData(jobData);
+    console.log("🚀 ~ jobData:", jobData);
+    (0,_ethersConnect__WEBPACK_IMPORTED_MODULE_2__.ethersConnect)(jobData, checksum, checksumCreateTime, privateKey);
+  } catch (error) {
+    console.error("Error uploading to MinIO:", error);
+  }
+  return {
+    checksum,
+    checksumCreateTime
+  };
+};
+const storeJobData = async (jobData, jobReceviedresponse = "data") => {
+  try {
+    const existingData = await (0,_utils_common__WEBPACK_IMPORTED_MODULE_3__.getLocalStorage)("allJobData");
+    console.log("🚀 ~ storeJobData ~ existingData:", existingData);
+    console.log("🚀 ~ storeJobData ~ existingData:", jobData);
+    const jobDataArray = existingData ? JSON.parse(existingData) : [];
+
+    // Check  same UUID already exists
+    const jobExists = jobDataArray?.some(job => job?.UUID === jobData?.UUID);
+    if (!jobExists) {
+      const jobEntry = jobReceviedresponse ? {
+        ...jobData,
+        jobReceviedresponse
+      } : jobData;
+      jobDataArray.push(jobEntry);
+      (0,_utils_common__WEBPACK_IMPORTED_MODULE_3__.setLocalStorage)("allJobData", JSON.stringify(jobDataArray));
+      console.log(`Stored job data with UUID ${jobData?.UUID}`);
+    } else {
+      console.log(`Job with UUID ${jobData.UUID} already exists. Skipping storage.`);
+    }
+  } catch (error) {
+    console.error("Error saving job data:", error);
+  }
+};
+
+/***/ }),
+
+/***/ "./src/utils/common.js":
+/*!*****************************!*\
+  !*** ./src/utils/common.js ***!
+  \*****************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   calculatePercentage: () => (/* binding */ calculatePercentage),
+/* harmony export */   calculateTimeAgo: () => (/* binding */ calculateTimeAgo),
+/* harmony export */   epochPointsWithHeight: () => (/* binding */ epochPointsWithHeight),
+/* harmony export */   formatNumber: () => (/* binding */ formatNumber),
+/* harmony export */   formatWalletAddress: () => (/* binding */ formatWalletAddress),
+/* harmony export */   getLocalStorage: () => (/* binding */ getLocalStorage),
+/* harmony export */   getPrivateKey: () => (/* binding */ getPrivateKey),
+/* harmony export */   latestEntry: () => (/* binding */ latestEntry),
+/* harmony export */   maxTotal: () => (/* binding */ maxTotal),
+/* harmony export */   setLocalStorage: () => (/* binding */ setLocalStorage),
+/* harmony export */   sortJobsByDate: () => (/* binding */ sortJobsByDate),
+/* harmony export */   truncateAddress: () => (/* binding */ truncateAddress),
+/* harmony export */   validatePrivateKey: () => (/* binding */ validatePrivateKey)
+/* harmony export */ });
+const formatWalletAddress = walletAddress => {
+  if (walletAddress) {
+    const firstPart = walletAddress.slice(0, 4); // First 4 characters
+    const lastPart = walletAddress.slice(-4); // Last 4 characters
+
+    return `${firstPart}........${lastPart}`;
+  }
+};
+const calculateTimeAgo = lastUpdate => {
+  const diffInMs = Date.now() - new Date(lastUpdate).getTime();
+  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+  if (diffInMinutes < 60) {
+    return `${diffInMinutes} minutes ago`;
+  }
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) {
+    return `${diffInHours} hrs ago`;
+  }
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 30) {
+    return `${diffInDays} days ago`;
+  }
+  const diffInMonths = Math.floor(diffInDays / 30);
+  if (diffInMonths < 12) {
+    return `${diffInMonths} months ago`;
+  }
+  const diffInYears = Math.floor(diffInMonths / 12);
+  return `${diffInYears} years ago`;
+};
+const getPrivateKey = () => {
+  let privatekey = localStorage?.getItem("privateKey");
+  return privatekey;
+};
+const validatePrivateKey = key => {
+  const regex = /^[a-fA-F0-9]{64}$/;
+  if (key.startsWith("0x")) {
+    key = key.replace(/0x/, "");
+  }
+  return regex.test(key);
+};
+const sortJobsByDate = (jobs = []) => {
+  return jobs.sort((a, b) => {
+    const dateA = new Date(typeof a.Dataset === "string" ? JSON.parse(a.Dataset).createdAt : a.Dataset?.createdAt);
+    const dateB = new Date(typeof b.Dataset === "string" ? JSON.parse(b.Dataset).createdAt : b.Dataset?.createdAt);
+    return dateB - dateA;
+  });
+};
+
+// Wallet address Truncate
+const truncateAddress = (address, maxLength) => {
+  if (!address) return "";
+  if (address.length <= maxLength) {
+    return address;
+  }
+  const startLength = Math.ceil((maxLength - 10) / 2);
+  const endLength = Math.floor((maxLength - 9) / 2);
+  return address.substr(0, startLength) + " ... " + address.substr(address.length - endLength);
+};
+
+// Function to calculate the percentage
+const calculatePercentage = (value, total, chartHeight) => value / total * (chartHeight - 1);
+
+// Step 1: Find the maximum total value
+const maxTotal = rewardsHistoryData => {
+  return Math.max(...rewardsHistoryData.map(point => point.points));
+};
+
+// Step 2: Calculate rem values based on the ratio to the maximum total
+const epochPointsWithHeight = (rewardsHistoryData, maxTotalPoint) => {
+  const newData = rewardsHistoryData.map(point => {
+    const chartHeight = point.points / maxTotalPoint * 10;
+    return {
+      ...point,
+      chartHeight // Add the calculated rem value to the object
+    };
+  });
+  return newData;
+};
+
+// Step 1: Find the most recent entry by comparing dates
+const latestEntry = rewardsHistoryData => {
+  if (rewardsHistoryData.length === 0) return null; // Return null if data is empty
+  return rewardsHistoryData.reduce((latest, current) => {
+    return new Date(current.created) > new Date(latest.created) ? current : latest;
+  });
+};
+const formatNumber = num => {
+  if (num >= 1_000_000) {
+    return (num / 1_000_000).toFixed(1) + "M";
+  } else if (num >= 1_000) {
+    return (num / 1_000).toFixed(1) + "K";
+  } else {
+    return num.toString();
+  }
+};
+const parseValue = value => {
+  try {
+    return JSON.parse(value);
+  } catch (e) {
+    return value;
+  }
+};
+function getLocalStorage(key) {
+  return new Promise((resolve, reject) => {
+    chrome.storage.local.get([key]).then(data => {
+      resolve(parseValue(data[key]));
+      console.log("Data get successfully! in chrome storage");
+    }).catch(reject);
+  });
+}
+function setLocalStorage(key, value) {
+  return new Promise((resolve, reject) => {
+    chrome.storage.local.set({
+      [key]: JSON.stringify(value)
+    }).then(() => {
+      resolve();
+      chrome.runtime.sendMessage({
+        type: "storageUpdated",
+        key: key,
+        value: value
+      });
+      console.log("Data saved successfully! in chrome storage", value);
+    }).catch(reject);
+  });
+}
+
+/***/ }),
+
 /***/ "./node_modules/base64-js/index.js":
 /*!*****************************************!*\
   !*** ./node_modules/base64-js/index.js ***!
@@ -61927,501 +62571,6 @@ function trimZeros(numStr){
     return numStr;
 }
 module.exports = toNumber
-
-
-/***/ }),
-
-/***/ "./src/background.js":
-/*!***************************!*\
-  !*** ./src/background.js ***!
-  \***************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   connectWebSocket: () => (/* binding */ connectWebSocket)
-/* harmony export */ });
-/* harmony import */ var _getMarkdown__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./getMarkdown */ "./src/getMarkdown.js");
-
-
-let socket = null;
-
-const url = "wss://orchestrator.openledger.dev/ws/v1/orch";
-// const url = "ws://192.168.18.129:9999";
-
-chrome?.runtime.onInstalled.addListener(() => {
-  console.log("Extension Installed");
-  connectWebSocket(url);
-});
-
-connectWebSocket(url);
-
-function connectWebSocket(url) {
-  // WebSocket server URL
-
-  socket = new WebSocket(url);
-
-  socket.onopen = () => {
-    console.log("WebSocket is connected.");
-    socket.send(
-      JSON.stringify({ action: "connect", data: "Client connected" })
-    );
-
-    // Start sending heartbeat after WebSocket is connected
-    sendHeartbeat("Bossssss aee pls");
-  };
-
-  socket.onmessage = async (event) => {
-    console.log("Message received from WebSocket:", event.data);
-
-    const message = JSON.parse(event.data);
-
-    socket?.send(
-      JSON?.stringify({
-        workerID: "web-extension",
-        msgType: "JOB_ASSIGNED",
-        message: {
-          Status: true,
-          Ref: message?.data?.UUID,
-        },
-      })
-    );
-
-    await (0,_getMarkdown__WEBPACK_IMPORTED_MODULE_0__["default"])(message);
-  };
-
-  socket.onerror = (error) => {
-    console.error("WebSocket error:", error);
-  };
-
-  socket.onclose = (event) => {
-    console.log("WebSocket connection closed", event);
-  };
-
-  function sendHeartbeat(workerId) {
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      setInterval(() => {
-        socket.send(JSON.stringify({ type: "HEARTBEAT", id: workerId }));
-        console.log("Heartbeat sent:", workerId);
-      }, 3000);
-    } else {
-      console.error("WebSocket is not open, unable to send heartbeat.");
-    }
-  }
-}
-
-if (chrome.runtime && chrome.runtime.onMessage) {
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.type === "send_privatekey") {
-      console.log("Received value:", request);
-      setLocalStorage("privateKey", request?.value);
-      // Do something with the value here (e.g., store it, send it to a server)
-
-      // Send a response back to the content script if needed
-      sendResponse({ status: "Value received" });
-    }
-  });
-} else {
-  console.error("chrome.runtime.onMessage is not available.");
-}
-
-const parseValue = (value) => {
-  try {
-    return JSON.parse(value);
-  } catch (e) {
-    return value;
-  }
-};
-
-function getLocalStorage(key) {
-  return new Promise((resolve, reject) => {
-    chrome.storage.local
-      .get([key])
-      .then((data) => {
-        resolve(parseValue(data[key]));
-        console.log("Data get successfully! in chrome storage");
-      })
-      .catch(reject);
-  });
-}
-
-function setLocalStorage(key, value) {
-  return new Promise((resolve, reject) => {
-    chrome.storage.local
-      .set({ [key]: JSON.stringify(value) })
-      .then(() => {
-        resolve();
-        chrome.runtime.sendMessage({
-          type: "storageUpdated",
-          key: key,
-          value: value,
-        });
-        console.log("Data saved successfully! in chrome storage", value);
-      })
-      .catch(reject);
-  });
-}
-
-
-/***/ }),
-
-/***/ "./src/ethersConnect.js":
-/*!******************************!*\
-  !*** ./src/ethersConnect.js ***!
-  \******************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   ethersConnect: () => (/* binding */ ethersConnect)
-/* harmony export */ });
-/* harmony import */ var ethers__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ethers */ "./node_modules/ethers/lib.esm/ethers.js");
-/* harmony import */ var ethers__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ethers */ "./node_modules/ethers/lib.esm/utils.js");
-/* harmony import */ var ethers__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ethers */ "./node_modules/@ethersproject/wallet/lib.esm/index.js");
-/* harmony import */ var ethers__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ethers */ "./node_modules/@ethersproject/solidity/lib.esm/index.js");
-/* harmony import */ var ethers__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ethers */ "./node_modules/@ethersproject/bytes/lib.esm/index.js");
-/* harmony import */ var _background__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./background */ "./src/background.js");
-
-
-
-const ethersConnect = async (
-  jobData,
-  checksum,
-  checksumCreateTime,
-  privateKey
-) => {
-  console.log("🚀 ~ checksumCreateTime:", checksumCreateTime);
-  console.log("🚀 ~ ethersConnect ~ checksum:", checksum);
-
-  // Ensure ethers is imported and available
-  if (!ethers__WEBPACK_IMPORTED_MODULE_1__ || !ethers__WEBPACK_IMPORTED_MODULE_2__) {
-    console.error(
-      "ethers.utils is undefined. Make sure ethers is imported correctly."
-    );
-    return;
-  }
-
-  const wallet = new ethers__WEBPACK_IMPORTED_MODULE_3__.Wallet(privateKey);
-  console.log("🚀 ~ ethersConnect ~ wallet:", wallet);
-
-  let dataset =
-    typeof jobData.Dataset === "string"
-      ? JSON.parse(jobData.Dataset)
-      : jobData.Dataset;
-
-  let worker = wallet?.address;
-  let dataNetAddress = dataset.contractAddress;
-  let dataNetReference = dataset.name;
-  let dataNetRequestAt = 1344537000;
-  let JobReference = jobData.ID;
-  let storageReference = `${wallet?.address}/${jobData.Type}`;
-  let storageChecksum = checksum;
-  let storagedAt = checksumCreateTime;
-
-  // Check each parameter type to ensure everything is correct
-  console.log("🚀 ~ ethersConnect ~ params before hashing:", {
-    worker,
-    dataNetAddress,
-    dataNetReference,
-    dataNetRequestAt,
-    JobReference,
-    storageReference,
-    storageChecksum,
-    storagedAt,
-  });
-
-  let params = [
-    worker,
-    dataNetAddress,
-    dataNetReference,
-    dataNetRequestAt,
-    JobReference,
-    storageReference,
-    storageChecksum,
-    storagedAt,
-  ];
-
-  // Validate the types and values of params
-  params.forEach((param, index) => {
-    console.log(`Type of param[${index}]:`, typeof param, "Value:", param);
-  });
-
-  try {
-    // Check if `solidityKeccak256` is available before calling
-    if (!ethers__WEBPACK_IMPORTED_MODULE_4__.keccak256) {
-      console.error("solidityKeccak256 method is unavailable.");
-      return;
-    }
-
-    // Call `solidityKeccak256` with the correct types
-    let hash = ethers__WEBPACK_IMPORTED_MODULE_4__.keccak256(
-      [
-        "string", // worker
-        "string", // dataNetAddress
-        "string", // dataNetReference
-        "uint256", // dataNetRequestAt (string format)
-        "string", // JobReference
-        "string", // storageReference
-        "string", // storageChecksum
-        "uint256", // storagedAt
-      ],
-      params
-    );
-
-    console.log("🚀 ~ ethersConnect ~ hash:", hash);
-
-    // Handle null or invalid hash
-    if (!hash) {
-      console.error("Error: Hash calculation resulted in null.");
-      return;
-    }
-
-    // Sign the message with the wallet's private key
-    let signature = await wallet.signMessage(ethers__WEBPACK_IMPORTED_MODULE_5__.arrayify(hash));
-    console.log("🚀 ~ ethersConnect ~ signature:", signature);
-
-    const jobWithSign = {
-      ref: JobReference,
-      status: true,
-      message: "",
-      completed_at: storagedAt,
-      output: "",
-      job_details: {
-        worker,
-        dataNetAddress,
-        dataNetReference,
-        dataNetRequestAt,
-        JobReference,
-        storageReference,
-        storageChecksum,
-        storagedAt,
-      },
-      signature,
-    };
-
-    console.log(jobWithSign);
-
-    // registerWebSocket(
-    //   JSON?.stringify({
-    //     workerID: "Extension_ID",
-    //     msgType: "JOB_COMPLETION",
-    //     message: jobWithSign,
-    //   })
-    // );
-    return jobWithSign;
-  } catch (error) {
-    console.error("Error in ethersConnect:", error);
-    return null;
-  }
-};
-
-
-/***/ }),
-
-/***/ "./src/getMarkdown.js":
-/*!****************************!*\
-  !*** ./src/getMarkdown.js ***!
-  \****************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
-/* harmony export */ });
-/* harmony import */ var ethers__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ethers */ "./node_modules/@ethersproject/wallet/lib.esm/index.js");
-/* harmony import */ var _uploadMinio_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./uploadMinio.js */ "./src/uploadMinio.js");
-
-
-
-
-function getLocalStorage(key) {
-  return new Promise((resolve, reject) => {
-    chrome.storage.local
-      .get([key])
-      .then((data) => {
-        resolve(parseValue(data[key]));
-        console.log("Data get successfully! in chrome storage");
-      })
-      .catch(reject);
-  });
-}
-
-const parseValue = (value) => {
-  try {
-    return JSON.parse(value);
-  } catch (e) {
-    return value;
-  }
-};
-
-const getMarkdown = async (value) => {
-  // console.log("jobData", value?.data);
-  const JobData = value?.data;
-
-  console.log("jobData", getLocalStorage("privateKey"));
-
-  // Ensure the Dataset is valid before parsing
-  let parsedData;
-
-  const privateKey =
-    "5f9b0c9ee1eba7149d5855dbfb9d51b489e652f8a4bc2bd66b1ee31244457e11";
-  // if (!privateKey) {
-  //   console.error("Private key is required.");
-  //   return;
-  // }
-
-  if (JobData?.Dataset) {
-    try {
-      // Try to parse the Dataset if it exists
-      parsedData = JSON.parse(JobData?.Dataset);
-
-      // Optionally log the parsed data for debugging
-      console.log("Parsed Dataset:", parsedData);
-    } catch (err) {
-      console.error("Error parsing Dataset:", err);
-      console.error("Invalid Dataset data:", JobData.Dataset);
-      return; // Exit the function if Dataset is invalid
-    }
-  } else {
-    console.log("Dataset is missing or invalid.");
-  }
-
-  const bucketName = parsedData?.name;
-  if (!bucketName) {
-    console.error("No bucket name found in parsed dataset.");
-    return;
-  }
-
-  // Ensure the Payload is valid before parsing
-  let payload;
-  try {
-    payload = JobData?.Payload ? JSON.parse(JobData?.Payload) : null;
-  } catch (err) {
-    console.error("Error parsing Payload:", err);
-    return; // Exit the function if Payload is invalid
-  }
-
-  const urls = payload?.urls || [];
-  if (urls.length === 0) {
-    console.error("No URLs found in Payload.");
-    return;
-  }
-
-  const wallet = new ethers__WEBPACK_IMPORTED_MODULE_1__.Wallet(privateKey); // Using dynamic private key
-  console.log("🚀 ~ fetchData ~ wallet:", wallet);
-
-  // Loop through URLs and fetch data
-  for (let i = 0; i < urls.length; i++) {
-    console.log("response2", urls[i]);
-    try {
-      const response = await fetch(
-        `http://localhost:3000/api/hello?url=${urls[i]}`
-      );
-      console.log("response", response);
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log("🚀 ~ fetchData ~ data:", data?.data?.markdown);
-
-        const markdownData = JSON.stringify(data?.data?.markdown, null, 2);
-        console.log("🚀 ~ fetchData ~ markdownData:", markdownData);
-
-        const sequenceNumber = (i + 1).toString().padStart(4, "0");
-        // const objectKey = `${wallet?.address}/${JobData?.Type}/${JobData?.UUID}/${sequenceNumber}.md`;
-        const objectKey = `${wallet.address}/${JobData.Type}/${JobData.UUID}_${sequenceNumber}.md`;
-
-        // Assuming uploadToMinIO is defined elsewhere
-        await (0,_uploadMinio_js__WEBPACK_IMPORTED_MODULE_0__.uploadMinio)(
-          bucketName,
-          objectKey,
-          markdownData,
-          JobData,
-          privateKey
-        );
-      } else {
-        console.error("Failed to fetch data for URL:", urls[i]);
-      }
-    } catch (err) {
-      console.error("Error fetching or uploading data:", err);
-    }
-  }
-};
-
-/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (getMarkdown);
-
-
-/***/ }),
-
-/***/ "./src/uploadMinio.js":
-/*!****************************!*\
-  !*** ./src/uploadMinio.js ***!
-  \****************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   uploadMinio: () => (/* binding */ uploadMinio)
-/* harmony export */ });
-/* harmony import */ var _aws_sdk_client_s3__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! @aws-sdk/client-s3 */ "./node_modules/@aws-sdk/client-s3/dist-es/S3Client.js");
-/* harmony import */ var _aws_sdk_client_s3__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! @aws-sdk/client-s3 */ "./node_modules/@aws-sdk/client-s3/dist-es/commands/PutObjectCommand.js");
-/* harmony import */ var buffer__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! buffer */ "./node_modules/buffer/index.js");
-/* harmony import */ var crypto_js_sha256__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! crypto-js/sha256 */ "./node_modules/crypto-js/sha256.js");
-/* harmony import */ var crypto_js_sha256__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(crypto_js_sha256__WEBPACK_IMPORTED_MODULE_1__);
-/* harmony import */ var _ethersConnect__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./ethersConnect */ "./src/ethersConnect.js");
-
-
-
-
-
-
-const uploadMinio = async (
-  bucketName,
-  objectKey,
-  data,
-  jobData,
-  privateKey,
-  contentType = "text/markdown"
-) => {
-  const s3Client = new _aws_sdk_client_s3__WEBPACK_IMPORTED_MODULE_3__.S3Client({
-    endpoint: "https://minioapi.openledger.dev",
-    region: "us-east-1",
-    credentials: {
-      accessKeyId: "FWF2K7x5zHGDHRRXvRkX",
-      secretAccessKey: "SD39rzABNmiLlHH6CoLBXv3H836JQyFPKhnz0vqB",
-    },
-    forcePathStyle: true,
-    tls: true,
-    maxAttempts: 3,
-    requestHandlerOptions: {
-      timeout: 30000,
-    },
-  });
-  const bodyBuffer = buffer__WEBPACK_IMPORTED_MODULE_0__.Buffer.from(data, "utf-8");
-  const checksum = crypto_js_sha256__WEBPACK_IMPORTED_MODULE_1___default()(bodyBuffer).toString();
-  const checksumCreateTime = new Date().getTime();
-  const params = {
-    Bucket: bucketName,
-    Key: objectKey,
-    Body: bodyBuffer,
-    ContentType: contentType,
-  };
-  console.log("🚀 ~ params:", params);
-
-  try {
-    const commend = new _aws_sdk_client_s3__WEBPACK_IMPORTED_MODULE_4__.PutObjectCommand(params);
-    const response = await s3Client.send(commend);
-    console.log("Successfully uploaded to MinIO:", response);
-    console.log("🚀 ~ checksum:", checksum);
-    (0,_ethersConnect__WEBPACK_IMPORTED_MODULE_2__.ethersConnect)(jobData, checksum, checksumCreateTime, privateKey);
-  } catch (error) {
-    console.error("Error uploading to MinIO:", error);
-  }
-  return { checksum, checksumCreateTime };
-};
 
 
 /***/ }),

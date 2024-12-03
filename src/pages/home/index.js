@@ -6,7 +6,7 @@ import trophy from "../../assets/images/trophy.png";
 import { useRouter } from "next/router";
 import ChromeExtentionHeader from "../../components/chrome_extension/chrome_extention_header";
 import seasonEarnBg from "../../assets/images/season-earn-bg.png";
-import { ethers } from "ethers";
+
 import {
   getRewardsHistory,
   getRewardsRealTime,
@@ -14,6 +14,12 @@ import {
 } from "@/utils/base-methods";
 import PointsStatistics from "@/components/dashboard/PointsStatistics ";
 import { formatNumber, truncateAddress } from "@/utils/common";
+import TimeCounter from "@/components/time-counter";
+import ClaimRewards from "@/components/claim-rewards";
+import { v4 as uuidv4 } from "uuid";
+import { validatePrivateKey } from "@/utils/common";
+import { ethers } from "ethers";
+import { generateToken } from "@/utils/base-methods";
 
 const Home = () => {
   const router = useRouter();
@@ -44,13 +50,8 @@ const Home = () => {
   };
 
   useEffect(() => {
-    privateKey && initialize();
+    // privateKey && initialize();
   }, [privateKey]);
-
-  const initialize = async () => {
-    const wallet = new ethers.Wallet(privateKey);
-    setWalletData(wallet);
-  };
 
   const jobData = [
     {
@@ -62,6 +63,7 @@ const Home = () => {
   const [rewardsHistoryData, setRewardsHistoryData] = useState([]);
   const [rewardsRealtimeData, setRewardsRealtimeData] = useState([]);
   const [rewardsTotal, setRewardsTotal] = useState([]);
+  const [allJobData, setAllJobData] = useState([]);
 
   // React useEffect in your app
 
@@ -71,7 +73,7 @@ const Home = () => {
     ws.onmessage = (event) => {
       const message = JSON.parse(event.data);
       console.log("SOCKETJOBDATA", event);
-
+      window.postMessage({ type: "send_jobdata", value: "" }, "*");
       if (message.type === "job_data") {
         setData(message.message);
       }
@@ -86,25 +88,73 @@ const Home = () => {
       "*"
     );
 
+    window.postMessage({ type: "send_jobdata", value: "" }, "*");
+
     window.addEventListener("message", (event) => {
       console.log("Received data in content script: webpage", event);
-      if (
-        event.source === window &&
-        event.data &&
-        event.data.type === "SEND_DATA"
-      ) {
-        console.log(
-          "Received data in content script: webpage",
-          event.data.payload
-        );
+      if (event?.data?.type === "getJobData") {
+        localStorage.setItem("allJobData", JSON?.stringify(event?.data?.value));
+        setAllJobData(event?.data?.value);
       }
     });
   }, []);
 
-  useEffect(() => {
+  const initialize = async () => {
+    try {
+      const wallet = new ethers.Wallet(privateKey);
+      setWalletData(wallet);
+      const wsService = new WebSocket(process.env.NEXT_PUBLIC_WS_URL);
+      wsService.onopen = () => {
+        console.log("WebSocket is connected. in Home");
+        wsService?.send(
+          JSON.stringify({
+            workerID: "extension",
+            msgType: "REGISTER",
+            message: {
+              id: uuidv4(),
+              type: "REGISTER",
+              worker: {
+                host: "extension",
+                identity: "Extension",
+                ownerAddress: wallet?.address ?? "",
+                type: "Web",
+              },
+            },
+          })
+        );
+      };
+
+      wsService.onmessage = (value) => {
+        console.log("Received job message:", JSON?.parse(value?.data));
+        let message = JSON?.parse(value?.data);
+        if (message?.status === false) {
+          router?.push(`/register-failed?reason=${message?.message}`);
+        } else if (message?.status === true) {
+          const authToken = localStorage?.getItem("auth_token");
+          if (!authToken) {
+            handleGenerateToken(wallet?.address);
+          }
+        }
+      };
+    } catch (error) {
+      console.error("Error during registration:", error);
+    }
+  };
+
+  const handleGenerateToken = async (address) => {
+    try {
+      const tokenData = await generateToken(address);
+      localStorage.setItem("auth_token", tokenData.data.token);
+      router?.push("/home");
+    } catch (error) {
+      console.error("Failed to generate token", error);
+    }
+  };
+
+  const getRewardsData = () => {
     handleGetRewardsHistory();
     handleGetRewardRealtime();
-  }, []);
+  };
 
   const handleGetRewardsHistory = async () => {
     try {
@@ -144,8 +194,6 @@ const Home = () => {
       console.log("🚀 ~ handleGetRewardRealtime ~ error:", error);
     }
   };
-
-  // Function to get the jobData from chrome storage
 
   return (
     <section className="max-w-[360px] w-full mx-auto bg-[#eef8ff] min-h-[100vh] flex flex-col">
@@ -201,56 +249,62 @@ const Home = () => {
             </div>
           </div>
         </div>
-        <div className="flex justify-between">
-          <div>
-            <Image
-              alt="logo"
-              src={trophy.src}
-              className="h-8 w-8 object-contain"
-            />
-          </div>
-          <div>
-            <p>Daily Treasure Claim</p>
-            <p>
-              Next Claim in: <span>8h 20m 48s</span>
-            </p>
-          </div>
-          <button
-            type="button"
-            className={`flex justify-center items-center gap-4 rounded-full px-[0.75rem] py-[0.5rem] text-base font-[400] border border-[#010101] dark:border-[#2E2E30] bg-[#010101] dark:bg-[#161618] text-[#fff] dark:text-white md:ml-4 lg:ml-6`}
-          >
-            Claim Wallet
-          </button>
-        </div>
+        <ClaimRewards />
+
         <PointsStatistics data={rewardsHistoryData || []} />
 
         <div className="flex bg-[#fff] w-full mt-5 p-4 flex-col gap-4 rounded-md overflow-y-auto">
           <h4 className="text-lg font-bold text-black">
             Received All Job Data
           </h4>
-          {jobData?.length > 0 ? (
+
+          {allJobData?.length > 0 ? (
             <div className="flex flex-col gap-4">
-              {jobData?.map((items, index) => (
-                <>
-                  {" "}
-                  <div className="flex items-center border border-[#eaeaea] rounded-lg p-2 gap-2">
-                    <Image
-                      alt="logo"
-                      src={Profile.src}
-                      className="h-8 w-8 object-contain"
-                    />
-                    <div className="flex flex-col flex-1 gap-2">
-                      <h4 className="font-bold text-sm text-black">datanet1</h4>
-                      <p className="text-xs font-medium text-black">
-                        Synthetic Data Generation
+              {console.log("allJobData", allJobData)}
+              {JSON.parse(allJobData)?.map((items, index) => {
+                const dataset =
+                  typeof items.Dataset === "string"
+                    ? JSON.parse(items.Dataset)
+                    : items.Dataset;
+                return (
+                  <>
+                    {" "}
+                    <div className="flex items-center border border-[#eaeaea] rounded-lg p-2 gap-2">
+                      <Image
+                        alt="logo"
+                        src={Profile.src}
+                        className="h-8 w-8 object-contain"
+                      />
+                      <div className="flex flex-col flex-1 gap-2">
+                        <h4 className="font-bold text-sm text-black">
+                          {" "}
+                          {truncateAddress(items?.UUID, 23)}
+                        </h4>
+                        <p className="text-xs font-medium text-black">
+                          {`${dataset?.name ?? "N/A"}`}
+                        </p>
+                        <p className="text-xs font-medium text-black">
+                          {items?.jobReceviedresponse?.completed_at
+                            ? format(
+                                new Date(
+                                  items?.jobReceviedresponse?.completed_at
+                                ),
+                                "PPpp"
+                              )
+                            : "N/A"}
+                        </p>
+                      </div>
+                      <p className="ml-auto text-xs font-medium text-[#deab56] bg-[#fcecd0] rounded-[20px] px-2 py-1">
+                        {`${
+                          items?.jobReceviedresponse?.status === true
+                            ? "Completed"
+                            : "Failed"
+                        }`}
                       </p>
                     </div>
-                    <p className="ml-auto text-xs font-medium text-[#deab56] bg-[#fcecd0] rounded-[20px] px-2 py-1">
-                      Pending
-                    </p>
-                  </div>
-                </>
-              ))}
+                  </>
+                );
+              })}
             </div>
           ) : (
             <>

@@ -28,7 +28,7 @@ appAxios.interceptors.response.use(
   (response) => response, // Pass through successful responses
   async (error) => {
     // Check for 401 status (unauthorized)
-    if (error?.response?.status === 401) {
+    if (error?.response?.status === 401 || error?.response?.status === 404) {
       console.error("Unauthorized: Token has expired or is invalid.");
 
       // Remove the expired token from storage

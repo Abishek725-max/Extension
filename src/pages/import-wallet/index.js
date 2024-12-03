@@ -31,7 +31,8 @@ const ImportWallet = () => {
       return;
     }
     localStorage.setItem("privateKey", privateKeyValue);
-    initialize();
+    router?.push("/home");
+    // initialize();
   };
 
   const initialize = async () => {
@@ -58,28 +59,11 @@ const ImportWallet = () => {
         );
       };
 
-      // ws.send(
-      //   JSON.stringify({
-      //     workerID: "extension",
-      //     msgType: "REGISTER",
-      //     message: {
-      //       id: uuidv4(),
-      //       type: "REGISTER",
-      //       worker: {
-      //         host: "extension",
-      //         identity: "Extension",
-      //         ownerAddress: wallet?.address ?? "",
-      //         type: "Web",
-      //       },
-      //     },
-      //   })
-      // );
-
       wsService.onmessage = (value) => {
         console.log("Received job message:", JSON?.parse(value?.data));
         let message = JSON?.parse(value?.data);
         if (message?.status === false) {
-          router?.push("/register-failed");
+          router?.push(`/register-failed?reason=${message?.message}`);
         } else if (message?.status === true) {
           const authToken = localStorage?.getItem("auth_token");
           if (!authToken) {

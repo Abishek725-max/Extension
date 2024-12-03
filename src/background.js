@@ -2,13 +2,21 @@ import getMarkdown from "./getMarkdown";
 
 let socket = null;
 
-const url = "wss://orchestrator.openledger.dev/ws/v1/orch";
-// const url = "ws://192.168.18.129:9999";
+// const url = "wss://orchestrator.openledger.dev/ws/v1/orch";
+const url = "ws://192.168.18.129:9999";
 
 chrome?.runtime.onInstalled.addListener(() => {
   console.log("Extension Installed");
   connectWebSocket(url);
 });
+
+// chrome.storage.local.clear(() => {
+//   if (chrome.runtime.lastError) {
+//     console.error("Error clearing local storage:", chrome.runtime.lastError);
+//   } else {
+//     console.log("Local storage cleared.");
+//   }
+// });
 
 connectWebSocket(url);
 
@@ -31,6 +39,18 @@ export function connectWebSocket(url) {
     console.log("Message received from WebSocket:", event.data);
 
     const message = JSON.parse(event.data);
+    setTimeout(
+      () =>
+        chrome.runtime.sendMessage(
+          { type: "send_jobdata", data: message },
+          (response) => {
+            console.log("Response from content script:", response);
+          }
+        ),
+      5000
+    );
+
+    // setLocalStorage("allJobData", JSON.stringify(message?.data));
 
     socket?.send(
       JSON?.stringify({
@@ -43,7 +63,12 @@ export function connectWebSocket(url) {
       })
     );
 
-    await getMarkdown(message);
+    let privateKey = await getLocalStorage("privateKey");
+    console.log("🚀 ~ socket.onmessage= ~ privateKey:", privateKey);
+
+    if (privateKey) {
+      await getMarkdown(message, privateKey);
+    }
   };
 
   socket.onerror = (error) => {

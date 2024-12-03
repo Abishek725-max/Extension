@@ -3,6 +3,7 @@ import { Buffer } from "buffer";
 
 import SHA256 from "crypto-js/sha256";
 import { ethersConnect } from "./ethersConnect";
+import { getLocalStorage, setLocalStorage } from "./utils/common";
 
 export const uploadMinio = async (
   bucketName,
@@ -12,6 +13,8 @@ export const uploadMinio = async (
   privateKey,
   contentType = "text/markdown"
 ) => {
+  console.log("uploadMInio Pgae", privateKey);
+
   const s3Client = new S3Client({
     endpoint: "https://minioapi.openledger.dev",
     region: "us-east-1",
@@ -41,10 +44,42 @@ export const uploadMinio = async (
     const commend = new PutObjectCommand(params);
     const response = await s3Client.send(commend);
     console.log("Successfully uploaded to MinIO:", response);
+
     console.log("🚀 ~ checksum:", checksum);
+    storeJobData(jobData);
+    console.log("🚀 ~ jobData:", jobData);
     ethersConnect(jobData, checksum, checksumCreateTime, privateKey);
   } catch (error) {
     console.error("Error uploading to MinIO:", error);
   }
   return { checksum, checksumCreateTime };
+};
+
+export const storeJobData = async (jobData, jobReceviedresponse = "data") => {
+  try {
+    const existingData = await getLocalStorage("allJobData");
+    console.log("🚀 ~ storeJobData ~ existingData:", existingData);
+    console.log("🚀 ~ storeJobData ~ existingData:", jobData);
+
+    const jobDataArray = existingData ? JSON.parse(existingData) : [];
+
+    // Check  same UUID already exists
+    const jobExists = jobDataArray?.some((job) => job?.UUID === jobData?.UUID);
+
+    if (!jobExists) {
+      const jobEntry = jobReceviedresponse
+        ? { ...jobData, jobReceviedresponse }
+        : jobData;
+      jobDataArray.push(jobEntry);
+
+      setLocalStorage("allJobData", JSON.stringify(jobDataArray));
+      console.log(`Stored job data with UUID ${jobData?.UUID}`);
+    } else {
+      console.log(
+        `Job with UUID ${jobData.UUID} already exists. Skipping storage.`
+      );
+    }
+  } catch (error) {
+    console.error("Error saving job data:", error);
+  }
 };

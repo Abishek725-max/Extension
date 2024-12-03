@@ -18,24 +18,30 @@ const Home = () => {
 
   useEffect(() => {
     handleCallback();
-    window.postMessage(
-      { type: "SEND_DATA", payload: "testing" },
-      window.origin
-    );
+    // window.postMessage(
+    //   { type: "SEND_DATA", payload: "testingggg" },
+    //   window.origin
+    // );
+
+    window.addEventListener("message", (event) => {
+      console.log("Received data in content script: Webpage", event);
+    });
+
+    // window?.postMessage({ type: "message" }, "*");
   }, []);
 
   const handleCallback = async () => {
     // const result = await getDataWithId("privateKey");
-    const result = localStorage?.getItem("auth_token");
+    const result = localStorage?.getItem("privateKey");
     console.log("Result:", result);
 
     setTimeout(async () => {
       if (result) {
         router?.push(`/home`);
       } else {
-        router?.push("/choose-wallet");
+        router?.push("/import-wallet");
       }
-    }, 4000);
+    }, 3000);
   };
 
   return (

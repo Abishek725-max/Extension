@@ -9,21 +9,17 @@ module.exports = {
   entry: {
     background: "./src/background.js",
     content: "./src/content.js",
+    // popup: "./src/popup.js",
   },
   output: {
     path: path.resolve(__dirname, "dist"),
     filename: "[name].bundle.js",
   },
-
-  // module: {
-  //   rules: [
-  //     {
-  //       test: /\.js$/,
-  //       exclude: /node_modules/,
-  //       use: "babel-loader",
-  //     },
-  //   ],
+  // output: {
+  //   filename: "[name].js",
+  //   path: path.resolve(__dirname, "dist"),
   // },
+
   plugins: [
     new CopyWebpackPlugin({
       patterns: [
@@ -32,17 +28,18 @@ module.exports = {
       ],
     }),
   ],
-  // node: {
-  //   __dirname: true, // Optionally polyfill __dirname
-  //   __filename: true, // Optionally polyfill __filename
-  //   global: true, // Optionally polyfill global object
-  // },
-  // experiments: {
-  //   outputModule: true, // Enable ES modules for Service Worker
-  // },
-  // externals: {
-  //   chrome: "chrome", // Mark 'chrome' as an external dependency
-  // },
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        exclude: /node_modules/,
+        use: "babel-loader",
+      },
+    ],
+  },
+  resolve: {
+    extensions: [".js", ".jsx"], // Resolve .js and .jsx extensions
+  },
 
   target: "web", // Ensures compatibility with Chrome extensions
   devtool: "source-map",

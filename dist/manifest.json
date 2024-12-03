@@ -9,18 +9,27 @@
 
   "content_security_policy": {
     "script-src": "'self';",
-    "connect-src": "'self' ws://192.168.18.129:9999;",
-    "object-src": "'self';",
-    "frame-src": "'self' http://localhost:3000;"
+    "connect-src": "'self';",
+    "object-src": "'self';"
   },
 
   "content_scripts": [
     {
-      "matches": ["http://*/*", "https://*/*"],
+      "matches": ["<all_urls>"],
       "js": ["content.bundle.js"],
-      "run_at": "document_start"
+      "all_frames": true
     }
   ],
+  "web_accessible_resources": [
+    {
+      "matches": ["<all_urls>"],
+      "resources": ["build.js"]
+    }
+  ],
+  "externally_connectable": {
+    "matches": ["<all_urls>"]
+  },
+  "offline_enabled": true,
 
   "action": {
     "default_popup": "popup.html"
@@ -35,7 +44,5 @@
     "webNavigation"
   ],
 
-  "host_permissions": ["http://*/*", "https://*/*"],
-
-  "optional_permissions": ["tabs"]
+  "host_permissions": ["http://*/*", "https://*/*"]
 }

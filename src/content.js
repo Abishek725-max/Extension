@@ -1,18 +1,49 @@
-const value = "privatekeyVAlueesetup";
+// const value = "privatekeyVAlueesetup";
+
+const { getLocalStorage } = require("./utils/common");
 
 console.log("Content script loaded");
 
-chrome.runtime.sendMessage(
-  { type: "send_privatekey", value: value },
-  function (response) {
-    console.log("Response from background:", response);
-  }
-);
+// chrome.runtime.sendMessage(
+//   { type: "send_privatekey", value: value },
+//   function (response) {
+//     console.log("Response from background:", response);
+//   }
+// );
 
-window.addEventListener("message", (event) => {
-  console.log("Received data in content script: Extension", event);
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log("Received data in backgroundScript", message);
+  if (message?.type === "send_jobdata") {
+    // Process the job data
+    sendResponse({ status: "Received job data" });
+  }
 });
 
+window.addEventListener("message", async (event) => {
+  console.log("Received data in content script: Extension", event);
+
+  if (event?.data?.type === "send_privatekey") {
+    let { value } = event?.data;
+    chrome.runtime.sendMessage(
+      { type: "send_privatekey", value: value },
+      function (response) {
+        console.log("Response from background:", response);
+      }
+    );
+  }
+  if (event?.data?.type === "send_jobdata") {
+    let jobData = await getLocalStorage("allJobData");
+    console.log("valueinStorage", jobData);
+
+    window.postMessage({ type: "getJobData", value: jobData }, "*"),
+      console.log("Received data in jobData", event);
+  }
+});
+
+// setTimeout(
+//   () => window.postMessage({ type: "SendDataTOExtension" }, "*"),
+//   4000
+// );
 // chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 //   console.log("merssagagae", message);
 

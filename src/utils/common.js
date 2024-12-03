@@ -119,3 +119,40 @@ export const formatNumber = (num) => {
     return num.toString();
   }
 };
+
+const parseValue = (value) => {
+  try {
+    return JSON.parse(value);
+  } catch (e) {
+    return value;
+  }
+};
+
+export function getLocalStorage(key) {
+  return new Promise((resolve, reject) => {
+    chrome.storage.local
+      .get([key])
+      .then((data) => {
+        resolve(parseValue(data[key]));
+        console.log("Data get successfully! in chrome storage");
+      })
+      .catch(reject);
+  });
+}
+
+export function setLocalStorage(key, value) {
+  return new Promise((resolve, reject) => {
+    chrome.storage.local
+      .set({ [key]: JSON.stringify(value) })
+      .then(() => {
+        resolve();
+        chrome.runtime.sendMessage({
+          type: "storageUpdated",
+          key: key,
+          value: value,
+        });
+        console.log("Data saved successfully! in chrome storage", value);
+      })
+      .catch(reject);
+  });
+}

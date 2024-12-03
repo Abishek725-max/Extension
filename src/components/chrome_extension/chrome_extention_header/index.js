@@ -45,7 +45,10 @@ const ChromeExtentionHeader = () => {
                 />
               </svg>
             </div> */}
-            <div className="profile">
+            <div
+              className="profile"
+              onClick={() => router?.push("/wallet-details")}
+            >
               <Image
                 alt="logo"
                 src={Profile.src}

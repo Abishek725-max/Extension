@@ -5,7 +5,10 @@ const ChooseWallet = () => {
   const router = useRouter();
 
   useEffect(() => {
-    window?.postMessage({ type: "message" }, "*");
+    // window?.postMessage({ type: "message" }, "*");
+    window.addEventListener("message", (event) => {
+      console.log("Received data in content script: webpage", event);
+    });
   }, []);
 
   useEffect(() => {
@@ -21,8 +24,8 @@ const ChooseWallet = () => {
     const data = { message: "Hello from Next.js", timestamp: Date.now() };
 
     // Dispatch a custom event with the data
-    const customEvent = new CustomEvent("FROM_PAGE", { detail: data });
-    window.dispatchEvent(customEvent);
+    // const customEvent = new CustomEvent("FROM_PAGE", { detail: data });
+    // window.dispatchEvent(customEvent);
   }, []);
 
   return (

@@ -24,7 +24,6 @@ export const claimReward = async () => {
   try {
     const response = await baseAxios.put("/users/reward_permit");
     console.log("🚀 ~ claimReward ~ response:", response);
-
     return response.data;
   } catch (error) {
     console.error("Error claiming reward:", error);
@@ -38,16 +37,17 @@ export const getRewardsHistory = async () => {
     return response.data;
   } catch (error) {
     console.error("Error reward_history:", error);
+    throw error;
   }
 };
 
 export const getRewardsRealTime = async () => {
   try {
     const response = await baseAxios.get("/users/reward_realtime");
-
     return response.data;
   } catch (error) {
     console.error("Error reward_realtime:", error);
+    throw error;
   }
 };
 
@@ -58,5 +58,6 @@ export const getRewardsTotal = async () => {
     return response.data;
   } catch (error) {
     console.error("Error reward Total:", error);
+    throw error;
   }
 };

@@ -7,8 +7,7 @@ export const ethersConnect = async (
   checksumCreateTime,
   privateKey
 ) => {
-  console.log("🚀 ~ checksumCreateTime:", checksumCreateTime);
-  console.log("🚀 ~ ethersConnect ~ checksum:", checksum);
+  console.log("uploadMInio Pgae", privateKey);
 
   // Ensure ethers is imported and available
   if (!ethers || !ethers.utils) {
@@ -34,6 +33,8 @@ export const ethersConnect = async (
   let storageReference = `${wallet?.address}/${jobData.Type}`;
   let storageChecksum = checksum;
   let storagedAt = checksumCreateTime;
+
+  let signedDataArray = [];
 
   // Check each parameter type to ensure everything is correct
   console.log("🚀 ~ ethersConnect ~ params before hashing:", {
@@ -125,6 +126,31 @@ export const ethersConnect = async (
     //     message: jobWithSign,
     //   })
     // );
+
+    signedDataArray.push({
+      completed_at: jobWithSign.completed_at,
+      job_details: JSON.stringify(jobWithSign.job_details),
+      message: jobWithSign.message,
+      output: jobWithSign.output,
+      ref: jobWithSign.ref,
+      signature: jobWithSign.signature,
+      status: jobWithSign.status,
+    });
+
+    if (signedDataArray.length > 0) {
+      const wsService = new WebSocket("ws://192.168.83.182:9999");
+      wsService.onopen = () => {
+        wsService.send(
+          JSON.stringify({
+            workerID: "Extension",
+            msgType: "JOB_COMPLETION",
+            MultipleJobDetails: signedDataArray,
+          })
+        );
+      };
+    } else {
+      console.warn("No valid data to send.");
+    }
     return jobWithSign;
   } catch (error) {
     console.error("Error in ethersConnect:", error);
